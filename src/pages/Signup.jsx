@@ -7,7 +7,6 @@ export default function Signup() {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [role, setRole] = useState('Sales');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const { signup } = useAuth();
@@ -18,7 +17,7 @@ export default function Signup() {
         setError('');
         setLoading(true);
         try {
-            await signup(name, email, password, role);
+            await signup(name, email, password, 'Sales');
             navigate('/');
         } catch (err) {
             setError(err.message);
@@ -49,14 +48,6 @@ export default function Signup() {
                     <div className="form-group">
                         <label>Password</label>
                         <input type="password" className="form-control" value={password} onChange={e => setPassword(e.target.value)} placeholder="Create a password" required minLength={6} />
-                    </div>
-                    <div className="form-group">
-                        <label>Role</label>
-                        <select className="form-control" value={role} onChange={e => setRole(e.target.value)}>
-                            <option value="Sales">Sales</option>
-                            <option value="Accountant">Accountant</option>
-                            <option value="Admin">Admin</option>
-                        </select>
                     </div>
                     <button type="submit" className="btn btn-primary" disabled={loading}>
                         {loading ? 'Creating account...' : 'Create Account'}

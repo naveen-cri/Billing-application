@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { requirePermission } from '../middleware/auth.js';
 import multer from 'multer';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
@@ -19,7 +20,7 @@ const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
 const router = Router();
 
 // GET /api/settings
-router.get('/', (req, res) => {
+router.get('/', requirePermission('settings', 'read'), (req, res) => {
     try {
         const settings = prepare('SELECT * FROM settings WHERE id = 1').get();
         res.json(settings || {});
@@ -29,7 +30,7 @@ router.get('/', (req, res) => {
 });
 
 // PUT /api/settings
-router.put('/', (req, res) => {
+router.put('/', requirePermission('settings', 'write'), (req, res) => {
     try {
         const { business_name, business_address, business_city, business_state, business_pincode, business_gstin, business_phone, business_email } = req.body;
 
@@ -46,7 +47,7 @@ router.put('/', (req, res) => {
 });
 
 // POST /api/settings/logo
-router.post('/logo', upload.single('logo'), (req, res) => {
+router.post('/logo', requirePermission('settings', 'write'), upload.single('logo'), (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
         prepare('UPDATE settings SET business_logo = ? WHERE id = 1').run(req.file.filename);

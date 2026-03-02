@@ -1,10 +1,11 @@
 import { Router } from 'express';
 import { prepare } from '../db.js';
+import { requireRole } from '../middleware/auth.js';
 
 const router = Router();
 
 // GET /api/dashboard/stats
-router.get('/stats', (req, res) => {
+router.get('/stats', requireRole('Admin', 'Accountant', 'Sales'), (req, res) => {
     try {
         const { period } = req.query;
         let dateFilter = '';
@@ -43,7 +44,7 @@ router.get('/stats', (req, res) => {
 });
 
 // GET /api/dashboard/gst-summary
-router.get('/gst-summary', (req, res) => {
+router.get('/gst-summary', requireRole('Admin', 'Accountant', 'Sales'), (req, res) => {
     try {
         const summary = prepare(`SELECT COALESCE(SUM(cgst), 0) as total_cgst, COALESCE(SUM(sgst), 0) as total_sgst, COALESCE(SUM(igst), 0) as total_igst, COALESCE(SUM(cgst + sgst + igst), 0) as total_gst FROM invoices`).get();
         res.json(summary || { total_cgst: 0, total_sgst: 0, total_igst: 0, total_gst: 0 });
@@ -53,7 +54,7 @@ router.get('/gst-summary', (req, res) => {
 });
 
 // GET /api/dashboard/monthly-revenue
-router.get('/monthly-revenue', (req, res) => {
+router.get('/monthly-revenue', requireRole('Admin', 'Accountant', 'Sales'), (req, res) => {
     try {
         const data = prepare(`
       SELECT strftime('%Y-%m', date) as month, 
@@ -71,7 +72,7 @@ router.get('/monthly-revenue', (req, res) => {
 });
 
 // GET /api/dashboard/recent-invoices
-router.get('/recent-invoices', (req, res) => {
+router.get('/recent-invoices', requireRole('Admin', 'Accountant', 'Sales'), (req, res) => {
     try {
         const invoices = prepare(`SELECT i.*, c.name as customer_name FROM invoices i LEFT JOIN customers c ON i.customer_id = c.id ORDER BY i.created_at DESC LIMIT 10`).all();
         res.json(invoices);

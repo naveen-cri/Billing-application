@@ -31,4 +31,29 @@ export function requireRole(...roles) {
     };
 }
 
+const PERMISSIONS = {
+    customers: { read: ['Admin', 'Accountant', 'Sales'], write: ['Admin', 'Accountant', 'Sales'], update: ['Admin', 'Accountant', 'Sales'], delete: ['Admin'] },
+    products: { read: ['Admin', 'Accountant', 'Sales'], write: ['Admin', 'Accountant', 'Sales'], update: ['Admin', 'Accountant', 'Sales'], delete: ['Admin'] },
+    invoices: { read: ['Admin', 'Accountant', 'Sales'], write: ['Admin', 'Accountant', 'Sales'], update: ['Admin', 'Accountant'], delete: ['Admin'] },
+    payments: { read: ['Admin', 'Accountant'], write: ['Admin', 'Accountant'] },
+    reports: { read: ['Admin', 'Accountant'] },
+    settings: { read: ['Admin'], write: ['Admin'] },
+    users: { manage: ['Admin'] }
+};
+
+export function requirePermission(resource, action = 'read') {
+    return (req, res, next) => {
+        if (!req.user) {
+            return res.status(401).json({ error: 'Authentication required.' });
+        }
+
+        const allowedRoles = PERMISSIONS[resource]?.[action] || [];
+        if (!allowedRoles.includes(req.user.role)) {
+            return res.status(403).json({ error: 'Insufficient permissions.' });
+        }
+
+        next();
+    };
+}
+
 export { JWT_SECRET };
