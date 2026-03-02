@@ -1,0 +1,117 @@
+# Full-Stack Billing Application — Implementation Plan
+
+A professional Indian GST-compliant billing application with role-based access, invoice PDF generation, payment tracking, reports, and inventory management.
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React 18 + Vite |
+| Styling | Vanilla CSS (premium dark theme, glassmorphism) |
+| Backend | Express.js |
+| Database | SQLite via `better-sqlite3` |
+| Auth | JWT (`jsonwebtoken` + `bcryptjs`) |
+| PDF | `pdfkit` (server-side PDF generation) |
+| Charts | Chart.js + react-chartjs-2 |
+| Icons | Lucide React |
+| Routing | React Router v6 |
+
+---
+
+## Proposed Changes
+
+### 1. Authentication & Multi-User System
+
+#### [NEW] [auth.js](file:///c:/Users/babun/OneDrive/Documents/Billing%20application/server/routes/auth.js)
+- `POST /api/auth/signup` — register user (name, email, password, role)
+- `POST /api/auth/login` — login, returns JWT token
+- `GET /api/auth/me` — get current user from token
+- Roles: **Admin**, **Accountant**, **Sales**
+- Password hashing with `bcryptjs`
+
+#### [NEW] [auth middleware](file:///c:/Users/babun/OneDrive/Documents/Billing%20application/server/middleware/auth.js)
+- JWT verification middleware
+- Role-based access control middleware (`requireRole('Admin')`)
+
+#### [NEW] [Login.jsx](file:///c:/Users/babun/OneDrive/Documents/Billing%20application/src/pages/Login.jsx) / [Signup.jsx](file:///c:/Users/babun/OneDrive/Documents/Billing%20application/src/pages/Signup.jsx)
+- Secure login/signup forms, JWT in localStorage
+
+#### [NEW] [AuthContext.jsx](file:///c:/Users/babun/OneDrive/Documents/Billing%20application/src/context/AuthContext.jsx)
+- Global auth state, role-based UI, protected routes
+
+---
+
+### 2. Database Schema — [db.js](file:///c:/Users/babun/OneDrive/Documents/Billing%20application/server/db.js)
+
+| Table | Key Columns |
+|-------|------------|
+| `users` | id, name, email, password_hash, role, created_at |
+| `customers` | id, name, email, phone, address, gstin, state |
+| `products` | id, name, hsn_sac_code, price, tax_rate, unit, stock_quantity, low_stock_threshold |
+| `invoices` | id, invoice_number, customer_id, date, due_date, subtotal, cgst, sgst, igst, total, status, payment_status, amount_paid, created_by |
+| `invoice_items` | id, invoice_id, product_id, description, hsn_sac_code, quantity, unit_price, tax_rate, tax_amount, total |
+| `payments` | id, invoice_id, amount, date, method, notes |
+| `settings` | business_name, address, gstin, logo, phone, email |
+
+---
+
+### 3. Invoice Management (GST-Compliant)
+
+#### [NEW] [invoices.js](file:///c:/Users/babun/OneDrive/Documents/Billing%20application/server/routes/invoices.js)
+- Full CRUD with auto GST calculation (CGST+SGST intra-state, IGST inter-state)
+- HSN/SAC code per line item, auto invoice numbering
+- `GET /:id/pdf` — PDF generation with business logo, line items, taxes
+- `POST /:id/email` — send PDF via nodemailer
+- `GET /:id/whatsapp` — WhatsApp share link
+
+#### [NEW] [Invoices.jsx](file:///c:/Users/babun/OneDrive/Documents/Billing%20application/src/pages/Invoices.jsx)
+- List with search/filter, create/edit form with line items, auto-calc taxes
+- Download PDF, Share via Email/WhatsApp buttons, status badges
+
+---
+
+### 4–5. Customer & Product Management + Inventory
+
+- Customer CRUD with GSTIN, address, state fields
+- Product CRUD with HSN/SAC, price, tax rate, unit, stock quantity
+- Stock auto-decrement on invoice, low stock alerts
+
+---
+
+### 6. Payment Tracking
+
+- Record payments against invoices (partial/full)
+- Auto-update payment status (Paid/Unpaid/Partial)
+- Payment history, reminder generation
+
+---
+
+### 7. Dashboard — KPI cards (sales daily/monthly/yearly), outstanding, GST summary, revenue chart, recent invoices, low stock alerts
+
+### 8. Reports — Sales (date filter), GST (CGST/SGST/IGST), Outstanding — tabbed view with date pickers
+
+### 9. Settings — Business info + logo upload (multer), shown on PDF invoices
+
+---
+
+## Role-Based Access Matrix
+
+| Feature | Admin | Accountant | Sales |
+|---------|-------|-----------|-------|
+| Dashboard | ✅ | ✅ | ✅ (limited) |
+| Manage Users | ✅ | ❌ | ❌ |
+| Invoices (CRUD) | ✅ | ✅ | ✅ (own only) |
+| Customers (CRUD) | ✅ | ✅ | ✅ |
+| Products (CRUD) | ✅ | ✅ | ❌ (view only) |
+| Payments | ✅ | ✅ | ❌ |
+| Reports | ✅ | ✅ | ❌ |
+| Settings | ✅ | ❌ | ❌ |
+| Inventory | ✅ | ✅ | ❌ (view only) |
+
+## Verification Plan
+
+1. Start `npm run dev:full`, navigate to `http://localhost:5173`
+2. Test signup/login → verify JWT auth and role-based access
+3. Add customer + product → create invoice → download PDF → verify GST calculations
+4. Record payment → verify status updates → check dashboard
+5. Verify reports, inventory alerts, settings, and responsive design
