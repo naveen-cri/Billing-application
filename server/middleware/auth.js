@@ -32,13 +32,13 @@ export function requireRole(...roles) {
 }
 
 const PERMISSIONS = {
-    customers: { read: ['Admin', 'Accountant', 'Sales'], write: ['Admin', 'Accountant', 'Sales'], update: ['Admin', 'Accountant', 'Sales'], delete: ['Admin'] },
-    products: { read: ['Admin', 'Accountant', 'Sales'], write: ['Admin', 'Accountant', 'Sales'], update: ['Admin', 'Accountant', 'Sales'], delete: ['Admin'] },
-    invoices: { read: ['Admin', 'Accountant', 'Sales'], write: ['Admin', 'Accountant', 'Sales'], update: ['Admin', 'Accountant'], delete: ['Admin'] },
-    payments: { read: ['Admin', 'Accountant'], write: ['Admin', 'Accountant'] },
-    reports: { read: ['Admin', 'Accountant'] },
-    settings: { read: ['Admin'], write: ['Admin'] },
-    users: { manage: ['Admin'] }
+    customers: { read: ['SuperAdmin', 'Admin', 'Accountant', 'Sales'], write: ['SuperAdmin', 'Admin', 'Accountant', 'Sales'], update: ['SuperAdmin', 'Admin', 'Accountant', 'Sales'], delete: ['SuperAdmin', 'Admin'] },
+    products: { read: ['SuperAdmin', 'Admin', 'Accountant', 'Sales'], write: ['SuperAdmin', 'Admin', 'Accountant', 'Sales'], update: ['SuperAdmin', 'Admin', 'Accountant', 'Sales'], delete: ['SuperAdmin', 'Admin'] },
+    invoices: { read: ['SuperAdmin', 'Admin', 'Accountant', 'Sales'], write: ['SuperAdmin', 'Admin', 'Accountant', 'Sales'], update: ['SuperAdmin', 'Admin', 'Accountant'], delete: ['SuperAdmin', 'Admin'] },
+    payments: { read: ['SuperAdmin', 'Admin', 'Accountant'], write: ['SuperAdmin', 'Admin', 'Accountant'] },
+    reports: { read: ['SuperAdmin', 'Admin', 'Accountant'] },
+    settings: { read: ['SuperAdmin', 'Admin'], write: ['SuperAdmin', 'Admin'] },
+    users: { manage: ['SuperAdmin'] }
 };
 
 export function requirePermission(resource, action = 'read') {
@@ -56,4 +56,4 @@ export function requirePermission(resource, action = 'read') {
     };
 }
 
-export { JWT_SECRET };
+export { JWT_SECRET, PERMISSIONS };

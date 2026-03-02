@@ -34,9 +34,9 @@ function AppLayout() {
                     <Route path="/invoices" element={<Invoices />} />
                     <Route path="/customers" element={<Customers />} />
                     <Route path="/products" element={<Products />} />
-                    <Route path="/payments" element={<ProtectedRoute roles={['Admin', 'Accountant']}><Payments /></ProtectedRoute>} />
-                    <Route path="/reports" element={<ProtectedRoute roles={['Admin', 'Accountant']}><Reports /></ProtectedRoute>} />
-                    <Route path="/settings" element={<ProtectedRoute roles={['Admin']}><SettingsPage /></ProtectedRoute>} />
+                    <Route path="/payments" element={<ProtectedRoute roles={['SuperAdmin', 'Admin', 'Accountant']}><Payments /></ProtectedRoute>} />
+                    <Route path="/reports" element={<ProtectedRoute roles={['SuperAdmin', 'Admin', 'Accountant']}><Reports /></ProtectedRoute>} />
+                    <Route path="/settings" element={<ProtectedRoute roles={['SuperAdmin', 'Admin']}><SettingsPage /></ProtectedRoute>} />
                 </Routes>
             </main>
         </div>

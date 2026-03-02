@@ -1,32 +1,61 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { Save, Upload, Building2 } from 'lucide-react';
+import { Save, Upload, Building2, ShieldCheck } from 'lucide-react';
+
+const ROLE_OPTIONS = ['SuperAdmin', 'Admin', 'Accountant', 'Sales'];
 
 export default function SettingsPage() {
-    const { api, apiUpload } = useAuth();
+    const { api, apiUpload, hasRole, user } = useAuth();
     const { addToast } = useToast();
     const [form, setForm] = useState({ business_name: '', business_address: '', business_city: '', business_state: '', business_pincode: '', business_gstin: '', business_phone: '', business_email: '' });
     const [logo, setLogo] = useState('');
     const [loading, setLoading] = useState(true);
+    const [users, setUsers] = useState([]);
+    const [permissions, setPermissions] = useState({});
 
-    useEffect(() => { loadSettings(); }, []);
+    const isSuperAdmin = hasRole('SuperAdmin');
+
+    useEffect(() => { loadData(); }, []);
+
+    const loadData = async () => {
+        try {
+            await loadSettings();
+            if (isSuperAdmin) {
+                await Promise.all([loadUsers(), loadPermissions()]);
+            }
+        } catch (err) {
+            console.error(err);
+        }
+        setLoading(false);
+    };
 
     const loadSettings = async () => {
-        try {
-            const res = await api('/api/settings');
-            const data = await res.json();
-            setForm({ business_name: data.business_name || '', business_address: data.business_address || '', business_city: data.business_city || '', business_state: data.business_state || '', business_pincode: data.business_pincode || '', business_gstin: data.business_gstin || '', business_phone: data.business_phone || '', business_email: data.business_email || '' });
-            setLogo(data.business_logo || '');
-        } catch (err) { console.error(err); }
-        setLoading(false);
+        const res = await api('/api/settings');
+        const data = await res.json();
+        setForm({ business_name: data.business_name || '', business_address: data.business_address || '', business_city: data.business_city || '', business_state: data.business_state || '', business_pincode: data.business_pincode || '', business_gstin: data.business_gstin || '', business_phone: data.business_phone || '', business_email: data.business_email || '' });
+        setLogo(data.business_logo || '');
+    };
+
+    const loadUsers = async () => {
+        const res = await api('/api/auth/users');
+        const data = await res.json();
+        setUsers(data || []);
+    };
+
+    const loadPermissions = async () => {
+        const res = await api('/api/auth/permissions');
+        const data = await res.json();
+        setPermissions(data || {});
     };
 
     const handleSave = async () => {
         try {
             await api('/api/settings', { method: 'PUT', body: JSON.stringify(form) });
             addToast('Settings saved', 'success');
-        } catch (err) { addToast(err.message, 'error'); }
+        } catch (err) {
+            addToast(err.message, 'error');
+        }
     };
 
     const handleLogoUpload = async (e) => {
@@ -39,7 +68,24 @@ export default function SettingsPage() {
             const data = await res.json();
             setLogo(data.filename);
             addToast('Logo uploaded', 'success');
-        } catch (err) { addToast('Upload failed', 'error'); }
+        } catch (err) {
+            addToast('Upload failed', 'error');
+        }
+    };
+
+    const handleRoleChange = async (userId, role) => {
+        try {
+            const res = await api(`/api/auth/users/${userId}/role`, { method: 'PUT', body: JSON.stringify({ role }) });
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || 'Failed to update role.');
+            }
+
+            setUsers(prev => prev.map(existing => existing.id === userId ? { ...existing, role } : existing));
+            addToast('User role updated', 'success');
+        } catch (err) {
+            addToast(err.message, 'error');
+        }
     };
 
     if (loading) return <div className="loading"><div className="spinner"></div></div>;
@@ -87,6 +133,72 @@ export default function SettingsPage() {
                     </div>
                 </div>
             </div>
+
+            {isSuperAdmin && (
+                <>
+                    <div className="card settings-section" style={{ marginTop: 24 }}>
+                        <h3><ShieldCheck size={18} style={{ verticalAlign: 'middle', marginRight: 8 }} />Super Admin - User Role Control</h3>
+                        <div className="table-container" style={{ marginTop: 14 }}>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Role</th>
+                                        <th>Access Control</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {users.map(appUser => (
+                                        <tr key={appUser.id}>
+                                            <td>{appUser.name}</td>
+                                            <td>{appUser.email}</td>
+                                            <td>
+                                                <select
+                                                    className="form-control"
+                                                    value={appUser.role}
+                                                    onChange={(e) => handleRoleChange(appUser.id, e.target.value)}
+                                                    disabled={appUser.id === user.id}
+                                                >
+                                                    {ROLE_OPTIONS.map(role => <option key={role} value={role}>{role}</option>)}
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <span className="badge badge-info">{appUser.id === user.id ? 'Current User (Locked)' : 'Editable by SuperAdmin'}</span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div className="card settings-section" style={{ marginTop: 24 }}>
+                        <h3>Role Access Matrix</h3>
+                        <p style={{ color: 'var(--text-muted)', marginTop: 8, marginBottom: 14 }}>This matrix defines what each role can access across the platform.</p>
+                        <div className="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Resource</th>
+                                        <th>Action</th>
+                                        <th>Allowed Roles</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {Object.entries(permissions).flatMap(([resource, actions]) => Object.entries(actions).map(([action, allowedRoles]) => (
+                                        <tr key={`${resource}-${action}`}>
+                                            <td>{resource}</td>
+                                            <td>{action}</td>
+                                            <td>{allowedRoles.join(', ')}</td>
+                                        </tr>
+                                    )))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </>
+            )}
         </div>
     );
 }
