@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { requirePermission } from '../middleware/auth.js';
 import { prepare, saveDB } from '../db.js';
 import PDFDocument from 'pdfkit';
 import { fileURLToPath } from 'url';
@@ -21,7 +22,7 @@ function generateInvoiceNumber() {
 }
 
 // GET /api/invoices
-router.get('/', (req, res) => {
+router.get('/', requirePermission('invoices', 'read'), (req, res) => {
     try {
         const { status, payment_status, search, created_by } = req.query;
         let sql = `SELECT i.*, c.name as customer_name, c.gstin as customer_gstin 
@@ -42,7 +43,7 @@ router.get('/', (req, res) => {
 });
 
 // GET /api/invoices/:id
-router.get('/:id', (req, res) => {
+router.get('/:id', requirePermission('invoices', 'read'), (req, res) => {
     try {
         if (req.params.id === 'undefined') return res.status(400).json({ error: 'Invalid ID' });
         const invoice = prepare(`SELECT i.*, c.name as customer_name, c.email as customer_email, c.phone as customer_phone, c.address as customer_address, c.city as customer_city, c.state as customer_state, c.pincode as customer_pincode, c.gstin as customer_gstin FROM invoices i LEFT JOIN customers c ON i.customer_id = c.id WHERE i.id = ?`).get(parseInt(req.params.id));
@@ -58,7 +59,7 @@ router.get('/:id', (req, res) => {
 });
 
 // POST /api/invoices
-router.post('/', (req, res) => {
+router.post('/', requirePermission('invoices', 'write'), (req, res) => {
     try {
         const { customer_id, date, due_date, items, notes, is_igst } = req.body;
         if (!customer_id || !items || !items.length) {
@@ -111,7 +112,7 @@ router.post('/', (req, res) => {
 });
 
 // PUT /api/invoices/:id
-router.put('/:id', (req, res) => {
+router.put('/:id', requirePermission('invoices', 'update'), (req, res) => {
     try {
         const { customer_id, date, due_date, items, notes, is_igst, status } = req.body;
 
@@ -157,7 +158,7 @@ router.put('/:id', (req, res) => {
 });
 
 // DELETE /api/invoices/:id
-router.delete('/:id', (req, res) => {
+router.delete('/:id', requirePermission('invoices', 'delete'), (req, res) => {
     try {
         prepare('DELETE FROM invoice_items WHERE invoice_id = ?').run(parseInt(req.params.id));
         prepare('DELETE FROM invoices WHERE id = ?').run(parseInt(req.params.id));
@@ -169,7 +170,7 @@ router.delete('/:id', (req, res) => {
 });
 
 // GET /api/invoices/:id/pdf
-router.get('/:id/pdf', (req, res) => {
+router.get('/:id/pdf', requirePermission('invoices', 'read'), (req, res) => {
     try {
         const invoice = prepare(`SELECT i.*, c.name as customer_name, c.email as customer_email, c.phone as customer_phone, c.address as customer_address, c.city as customer_city, c.state as customer_state, c.pincode as customer_pincode, c.gstin as customer_gstin FROM invoices i LEFT JOIN customers c ON i.customer_id = c.id WHERE i.id = ?`).get(parseInt(req.params.id));
         if (!invoice) return res.status(404).json({ error: 'Invoice not found.' });
@@ -276,7 +277,7 @@ router.get('/:id/pdf', (req, res) => {
 });
 
 // GET /api/invoices/:id/whatsapp
-router.get('/:id/whatsapp', (req, res) => {
+router.get('/:id/whatsapp', requirePermission('invoices', 'read'), (req, res) => {
     try {
         const invoice = prepare(`SELECT i.*, c.name as customer_name, c.phone as customer_phone FROM invoices i LEFT JOIN customers c ON i.customer_id = c.id WHERE i.id = ?`).get(parseInt(req.params.id));
         if (!invoice) return res.status(404).json({ error: 'Invoice not found.' });

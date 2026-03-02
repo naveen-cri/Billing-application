@@ -1,10 +1,11 @@
 import { Router } from 'express';
+import { requirePermission } from '../middleware/auth.js';
 import { prepare, getDB } from '../db.js';
 
 const router = Router();
 
 // GET /api/customers
-router.get('/', (req, res) => {
+router.get('/', requirePermission('customers', 'read'), (req, res) => {
     try {
         const { search } = req.query;
         let customers;
@@ -20,7 +21,7 @@ router.get('/', (req, res) => {
 });
 
 // GET /api/customers/:id
-router.get('/:id', (req, res) => {
+router.get('/:id', requirePermission('customers', 'read'), (req, res) => {
     try {
         const customer = prepare('SELECT * FROM customers WHERE id = ?').get(parseInt(req.params.id));
         if (!customer) return res.status(404).json({ error: 'Customer not found.' });
@@ -31,7 +32,7 @@ router.get('/:id', (req, res) => {
 });
 
 // POST /api/customers
-router.post('/', (req, res) => {
+router.post('/', requirePermission('customers', 'write'), (req, res) => {
     try {
         const { name, email, phone, address, city, state, pincode, gstin } = req.body;
         if (!name) return res.status(400).json({ error: 'Customer name is required.' });
@@ -46,7 +47,7 @@ router.post('/', (req, res) => {
 });
 
 // PUT /api/customers/:id
-router.put('/:id', (req, res) => {
+router.put('/:id', requirePermission('customers', 'update'), (req, res) => {
     try {
         const { name, email, phone, address, city, state, pincode, gstin } = req.body;
         prepare('UPDATE customers SET name=?, email=?, phone=?, address=?, city=?, state=?, pincode=?, gstin=? WHERE id=?').run(name, email || '', phone || '', address || '', city || '', state || '', pincode || '', gstin || '', parseInt(req.params.id));
@@ -59,7 +60,7 @@ router.put('/:id', (req, res) => {
 });
 
 // DELETE /api/customers/:id
-router.delete('/:id', (req, res) => {
+router.delete('/:id', requirePermission('customers', 'delete'), (req, res) => {
     try {
         const id = parseInt(req.params.id);
         const db = getDB();

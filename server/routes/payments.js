@@ -1,10 +1,11 @@
 import { Router } from 'express';
+import { requirePermission } from '../middleware/auth.js';
 import { prepare, saveDB } from '../db.js';
 
 const router = Router();
 
 // POST /api/payments
-router.post('/', (req, res) => {
+router.post('/', requirePermission('payments', 'write'), (req, res) => {
     try {
         const { invoice_id, amount, date, method, notes } = req.body;
         if (!invoice_id || !amount) return res.status(400).json({ error: 'Invoice ID and amount required.' });
@@ -35,7 +36,7 @@ router.post('/', (req, res) => {
 });
 
 // GET /api/payments/invoice/:invoiceId
-router.get('/invoice/:invoiceId', (req, res) => {
+router.get('/invoice/:invoiceId', requirePermission('payments', 'read'), (req, res) => {
     try {
         const payments = prepare('SELECT * FROM payments WHERE invoice_id = ? ORDER BY date DESC').all(parseInt(req.params.invoiceId));
         res.json(payments);
@@ -45,7 +46,7 @@ router.get('/invoice/:invoiceId', (req, res) => {
 });
 
 // GET /api/payments/reminder/:invoiceId
-router.get('/reminder/:invoiceId', (req, res) => {
+router.get('/reminder/:invoiceId', requirePermission('payments', 'read'), (req, res) => {
     try {
         const invoice = prepare(`SELECT i.*, c.name as customer_name, c.phone as customer_phone, c.email as customer_email FROM invoices i LEFT JOIN customers c ON i.customer_id = c.id WHERE i.id = ?`).get(parseInt(req.params.invoiceId));
         if (!invoice) return res.status(404).json({ error: 'Invoice not found.' });

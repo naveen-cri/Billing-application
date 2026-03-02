@@ -2,14 +2,14 @@ import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { prepare } from '../db.js';
-import { JWT_SECRET, authenticateToken } from '../middleware/auth.js';
+import { JWT_SECRET, authenticateToken, requireRole } from '../middleware/auth.js';
 
 const router = Router();
 
 // POST /api/auth/signup
 router.post('/signup', (req, res) => {
     try {
-        const { name, email, password, role } = req.body;
+        const { name, email, password } = req.body;
         if (!name || !email || !password) {
             return res.status(400).json({ error: 'Name, email and password are required.' });
         }
@@ -19,8 +19,7 @@ router.post('/signup', (req, res) => {
             return res.status(409).json({ error: 'Email already registered.' });
         }
 
-        const validRoles = ['Admin', 'Accountant', 'Sales'];
-        const userRole = validRoles.includes(role) ? role : 'Sales';
+        const userRole = 'Sales';
         const hash = bcrypt.hashSync(password, 10);
 
         const result = prepare('INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)').run(name, email, hash, userRole);
@@ -71,11 +70,39 @@ router.get('/me', authenticateToken, (req, res) => {
 });
 
 // GET /api/auth/users (admin only)
-router.get('/users', authenticateToken, (req, res) => {
-    if (req.user.role !== 'Admin') return res.status(403).json({ error: 'Admin only.' });
+router.get('/users', authenticateToken, requireRole('Admin'), (req, res) => {
     try {
         const users = prepare('SELECT id, name, email, role, created_at FROM users').all();
         res.json(users);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+
+// POST /api/auth/users (admin only)
+router.post('/users', authenticateToken, requireRole('Admin'), (req, res) => {
+    try {
+        const { name, email, password } = req.body;
+        if (!name || !email || !password || !role) {
+            return res.status(400).json({ error: 'Name, email, password and role are required.' });
+        }
+
+        const validRoles = ['Admin', 'Accountant', 'Sales'];
+        if (!validRoles.includes(role)) {
+            return res.status(400).json({ error: 'Invalid role.' });
+        }
+
+        const existing = prepare('SELECT id FROM users WHERE email = ?').get(email);
+        if (existing) {
+            return res.status(409).json({ error: 'Email already registered.' });
+        }
+
+        const hash = bcrypt.hashSync(password, 10);
+        const result = prepare('INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)').run(name, email, hash, role);
+        const user = prepare('SELECT id, name, email, role, created_at FROM users WHERE id = ?').get(result.lastInsertRowid);
+
+        res.status(201).json(user);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

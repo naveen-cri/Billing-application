@@ -1,10 +1,11 @@
 import { Router } from 'express';
+import { requirePermission } from '../middleware/auth.js';
 import { prepare } from '../db.js';
 
 const router = Router();
 
 // GET /api/reports/sales
-router.get('/sales', (req, res) => {
+router.get('/sales', requirePermission('reports', 'read'), (req, res) => {
     try {
         const { from, to } = req.query;
         let sql = `SELECT i.*, c.name as customer_name FROM invoices i LEFT JOIN customers c ON i.customer_id = c.id WHERE 1=1`;
@@ -28,7 +29,7 @@ router.get('/sales', (req, res) => {
 });
 
 // GET /api/reports/gst
-router.get('/gst', (req, res) => {
+router.get('/gst', requirePermission('reports', 'read'), (req, res) => {
     try {
         const { from, to } = req.query;
         let sql = `SELECT i.invoice_number, i.date, c.name as customer_name, c.gstin as customer_gstin, i.subtotal, i.cgst, i.sgst, i.igst, i.total FROM invoices i LEFT JOIN customers c ON i.customer_id = c.id WHERE 1=1`;
@@ -53,7 +54,7 @@ router.get('/gst', (req, res) => {
 });
 
 // GET /api/reports/outstanding
-router.get('/outstanding', (req, res) => {
+router.get('/outstanding', requirePermission('reports', 'read'), (req, res) => {
     try {
         const invoices = prepare(`SELECT i.*, c.name as customer_name, c.phone as customer_phone, c.email as customer_email FROM invoices i LEFT JOIN customers c ON i.customer_id = c.id WHERE i.payment_status != 'Paid' ORDER BY i.due_date ASC`).all();
 
