@@ -7,13 +7,13 @@ export default function Sidebar() {
     const location = useLocation();
 
     const navItems = [
-        { to: '/', icon: LayoutDashboard, label: 'Dashboard', roles: ['Admin', 'Accountant', 'Sales'] },
-        { to: '/invoices', icon: FileText, label: 'Invoices', roles: ['Admin', 'Accountant', 'Sales'] },
-        { to: '/customers', icon: Users, label: 'Customers', roles: ['Admin', 'Accountant', 'Sales'] },
-        { to: '/products', icon: Package, label: 'Products', roles: ['Admin', 'Accountant', 'Sales'] },
-        { to: '/payments', icon: CreditCard, label: 'Payments', roles: ['Admin', 'Accountant'] },
-        { to: '/reports', icon: BarChart3, label: 'Reports', roles: ['Admin', 'Accountant'] },
-        { to: '/settings', icon: Settings, label: 'Settings', roles: ['Admin'] },
+        { to: '/', icon: LayoutDashboard, label: 'Dashboard', roles: ['SuperAdmin', 'Admin', 'Accountant', 'Sales'] },
+        { to: '/invoices', icon: FileText, label: 'Invoices', roles: ['SuperAdmin', 'Admin', 'Accountant', 'Sales'] },
+        { to: '/customers', icon: Users, label: 'Customers', roles: ['SuperAdmin', 'Admin', 'Accountant', 'Sales'] },
+        { to: '/products', icon: Package, label: 'Products', roles: ['SuperAdmin', 'Admin', 'Accountant', 'Sales'] },
+        { to: '/payments', icon: CreditCard, label: 'Payments', roles: ['SuperAdmin', 'Admin', 'Accountant'] },
+        { to: '/reports', icon: BarChart3, label: 'Reports', roles: ['SuperAdmin', 'Admin', 'Accountant'] },
+        { to: '/settings', icon: Settings, label: 'Settings', roles: ['SuperAdmin', 'Admin'] },
     ];
 
     return (

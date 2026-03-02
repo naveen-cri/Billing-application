@@ -34,10 +34,32 @@ export async function initDB() {
       name TEXT NOT NULL,
       email TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
-      role TEXT NOT NULL DEFAULT 'Sales' CHECK(role IN ('Admin','Accountant','Sales')),
+      role TEXT NOT NULL DEFAULT 'Sales' CHECK(role IN ('SuperAdmin','Admin','Accountant','Sales')),
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+
+  // Ensure users table supports SuperAdmin role in CHECK constraint
+  const userCreateSqlResult = db.exec("SELECT sql FROM sqlite_master WHERE type='table' AND name='users'");
+  const userCreateSql = userCreateSqlResult?.[0]?.values?.[0]?.[0] || '';
+  if (userCreateSql && !String(userCreateSql).includes("'SuperAdmin'")) {
+    db.run('PRAGMA foreign_keys = OFF');
+    db.run(`
+      CREATE TABLE IF NOT EXISTS users_new (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        role TEXT NOT NULL DEFAULT 'Sales' CHECK(role IN ('SuperAdmin','Admin','Accountant','Sales')),
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    db.run('INSERT INTO users_new (id, name, email, password_hash, role, created_at) SELECT id, name, email, password_hash, role, created_at FROM users');
+    db.run('DROP TABLE users');
+    db.run('ALTER TABLE users_new RENAME TO users');
+    db.run('PRAGMA foreign_keys = ON');
+  }
 
   db.run(`
     CREATE TABLE IF NOT EXISTS customers (
@@ -143,12 +165,17 @@ export async function initDB() {
     db.run('INSERT INTO settings (id) VALUES (1)');
   }
 
-  // Seed admin user if no users exist
+  // Ensure there is at least one SuperAdmin
   const userCountResult = db.exec('SELECT COUNT(*) as count FROM users');
   const userCount = userCountResult[0].values[0][0];
+  const superAdminCountResult = db.exec("SELECT COUNT(*) FROM users WHERE role = 'SuperAdmin'");
+  const superAdminCount = superAdminCountResult?.[0]?.values?.[0]?.[0] || 0;
+
   if (userCount === 0) {
     const hash = bcrypt.hashSync('admin123', 10);
-    db.run('INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)', ['Admin', 'admin@billflow.com', hash, 'Admin']);
+    db.run('INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)', ['Super Admin', 'superadmin@billflow.com', hash, 'SuperAdmin']);
+  } else if (superAdminCount === 0) {
+    db.run("UPDATE users SET role = 'SuperAdmin' WHERE id = (SELECT id FROM users ORDER BY id LIMIT 1)");
   }
 
   saveDB();
